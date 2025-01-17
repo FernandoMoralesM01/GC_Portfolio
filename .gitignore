@@ -1,3 +1,4 @@
 Model/model 
 *.keras
 *.h5
+*.csv
