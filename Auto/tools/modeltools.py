@@ -71,7 +71,7 @@ def get_model(X_train, y_train):
 def train_model(path, model, X_train, y_train, X_test, y_test, epochs=2000, batch_size=32, lr=0.001):
     
     cp4 = ModelCheckpoint(path, save_best_only=True)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=200, restore_best_weights=True)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=300, restore_best_weights=True)
     model.compile(optimizer=Adam(learning_rate=0.001), loss=MeanSquaredError(), metrics=[RootMeanSquaredError(), 'mae'])
     #history = model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=2500, callbacks=[cp4, early_stopping])
     history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_test, y_test), callbacks=[cp4, early_stopping])

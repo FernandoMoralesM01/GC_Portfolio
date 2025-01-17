@@ -69,6 +69,8 @@ def get_features(activo, path_to_activos):
 
 
 def get_time_series(node, connected_nodes):
+    means = []
+    stds = []
     df_rasgos = pd.DataFrame()
 
     activos_seleccionados = [node] + connected_nodes
@@ -79,11 +81,15 @@ def get_time_series(node, connected_nodes):
     print(f"Obteniendo las series de tiempo de {activos_seleccionados}")
     for i in activos_seleccionados:
         df_rasgos[i] = pd.DataFrame(yf.Ticker(i).history(start = start,end = today, )['Close'])   
+        means.append(df_rasgos[i].mean())
+        stds.append(df_rasgos[i].std())
         df_rasgos[i] = (df_rasgos[i] - df_rasgos[i].mean()) / df_rasgos[i].std()
+        
+
     #df_rasgos.interpolate(method='linear', inplace=True)
     df_rasgos.fillna(method='ffill', inplace=True)
     df_rasgos.fillna(method='bfill', inplace=True)
-    return df_rasgos
+    return df_rasgos, np.array(means), np.array(stds)
 
 def get_model_from_gc(activo, path_to_activos, path_to_models, model = "Bi-LSTM"):
     nombre_modelo = f"{model}_{activo}.keras"
@@ -91,9 +97,9 @@ def get_model_from_gc(activo, path_to_activos, path_to_models, model = "Bi-LSTM"
     ## Obtener los rasgos del activo
 
     activos_influyentes = get_features(activo, path_to_activos)[:5]
-    df_features = get_time_series(activo, activos_influyentes)
+    df_features, means, stds = get_time_series(activo, activos_influyentes)
     
-    X_train, y_train, X_test, y_test = mt.genera_grupos_activos(df_features, len_sec=20, train_split=0.2, output=activo, step=4, random=True, future_win = 4)
+    X_train, y_train, X_test, y_test = mt.genera_grupos_activos(df_features, len_sec=30, train_split=0.2, output=activo, step=5, random=True, future_win = 4)
 
     model_ = mt.get_model(X_train, y_train)
     
@@ -102,6 +108,6 @@ def get_model_from_gc(activo, path_to_activos, path_to_models, model = "Bi-LSTM"
     except:
         print("Error: No se encontro el modelo, se creara uno nuevo")
     
-    model, history = mt.train_model(path = model_path, model=model_, X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test, epochs=10, batch_size=32, lr=0.001)
+    model, history = mt.train_model(path = model_path, model=model_, X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test, epochs=2500, batch_size=32, lr=0.001)
 
-    return model, history, activos_influyentes
+    return model, history, activos_influyentes, means, stds
